@@ -16,6 +16,7 @@ struct Token {
     std::optional<std::string> value{}; // this is optional
 };
 
+// tokenizer: this function will read the string and make a vector with all the tokens
 std::vector<Token> tokenize(const std::string &str) {
 
     std::vector<Token> tokens; // this will store all the tokens in order
@@ -74,6 +75,30 @@ std::vector<Token> tokenize(const std::string &str) {
     return tokens;
 }
 
+// parser: this function will convert the tokens to assembly code which will be inside a string
+std::string tokens_to_asm(const std::vector<Token> &tokens) {
+
+    std::stringstream output;
+    output << "global _start\n_start:\n"; // initializing the stringstream with starter code
+
+    for (int i = 0; i < tokens.size(); i++) {
+
+        const Token &token = tokens.at(i);
+
+        if (token.type == TokenType::_return) {
+            if (i + 1 < tokens.size() && tokens.at(i + 1).type == TokenType::int_lit) {
+                if (i + 2 < tokens.size() && tokens.at(i + 2).type == TokenType::semi) {
+                    // for this type of code: "return 10; it will convert it to assembly"
+                    output << "    mov rax, 60\n"; // syscall 60 for sys_exit
+                    output << "    mov rdi, " << tokens.at(i + 1).value.value() << "\n";
+                    output << "    syscall\n";
+                }
+            }
+        }
+    }
+    return output.str();
+}
+
 int main(int argc, char *argv[]) {
 
     // if there are no arguments then throw error
@@ -84,15 +109,26 @@ int main(int argc, char *argv[]) {
     }
 
     std::string contents; // this string will contain all the input file data
+    // we are using this brackets to define scope so that it will automatically close the file when the scope ends
     {
         // read the input file into contents
         std::stringstream contents_stream;
         std::fstream input(argv[1], std::ios::in);
         contents_stream << input.rdbuf();
         contents = contents_stream.str();
+    } // after this bracket the file will be closed
+
+    // now lets get all the tokens
+    std::vector<Token> tokens = tokenize(contents);
+    {
+        // this will make an output file with assembly code
+        std::fstream file("out.asm", std::ios::out);
+        file << tokens_to_asm(tokens);
     }
 
-    std::vector<Token> tokens = tokenize(contents);
+    // make the output file of assembly (machine code)
+    system("nasm -felf64 out.asm");
+    system("ld -o out out.o");
 
     return EXIT_SUCCESS;
 }
