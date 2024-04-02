@@ -14,10 +14,32 @@ struct Token {
 };
 
 class Tokenizer {
+
+private:
+    const std::string m_src;
+    size_t m_index = 0; // size_t is basically and unsigned 32-bit integer
+
+    // nodiscard means compiler will give a warning if the return value isn't stored/used as it's a constant method. PS: it was suggested by CLion LOL :)
+    // basically if you are not using the return value then it's not doing anything hence [[nodiscard]]
+    [[nodiscard]] inline std::optional<char> peek(int ahead = 1) const {
+        // it's a constant method which means it isn't modifying any of its members, so it makes it's only useful for returning value
+
+        if (m_index + ahead > m_src.length()) {
+            return {};
+        } else {
+            return m_src.at(m_index);
+        }
+    }
+
+    // returns the current element and then increases index
+    inline char consume() {
+        return m_src.at(m_index++);
+    }
+
 public:
     // explicit because it shouldn't accidentally convert string into a tokenizer
     inline explicit Tokenizer(std::string src) : m_src(std::move(src)) {
-
+        // this constructor just moves the value of string in our private member src
     }
 
     // tokenizer: this function will read the string and make a vector with all the tokens
@@ -74,24 +96,4 @@ public:
         m_index = 0; // in-case we need to use this again
         return tokens;
     }
-
-private:
-    // nodiscard means compiler will give a warning if the return value isn't stored/used as it's a constant method. PS: it was suggested by CLion LOL :)
-    // basically if you are not using the return value then it's not doing anything hence [[nodiscard]]
-    [[nodiscard]] std::optional<char> peek(int ahead = 1) const {
-        // it's a constant method which means it isn't modifying any of its members, so it makes it's only useful for returning value
-
-        if (m_index + ahead > m_src.length()) {
-            return {};
-        } else {
-            return m_src.at(m_index);
-        }
-    }
-
-    char consume() {
-        return m_src.at(m_index++);
-    }
-
-    const std::string m_src;
-    int m_index = 0;
 };

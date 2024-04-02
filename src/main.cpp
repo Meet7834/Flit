@@ -3,31 +3,10 @@
 #include <sstream>
 #include <optional>
 #include <vector>
-#include "tokenization.h"
 
-// parser: this function will convert the tokens to assembly code which will be inside a string
-std::string tokens_to_asm(const std::vector<Token> &tokens) {
-
-    std::stringstream output;
-    output << "global _start\n_start:\n"; // initializing the stringstream with starter code
-
-    for (int i = 0; i < tokens.size(); i++) {
-
-        const Token &token = tokens.at(i);
-
-        if (token.type == TokenType::exit) {
-            if (i + 1 < tokens.size() && tokens.at(i + 1).type == TokenType::int_lit) {
-                if (i + 2 < tokens.size() && tokens.at(i + 2).type == TokenType::semi) {
-                    // for this type of code: "exit 10; it will convert it to assembly"
-                    output << "    mov rax, 60\n"; // syscall 60 for sys_exit
-                    output << "    mov rdi, " << tokens.at(i + 1).value.value() << "\n";
-                    output << "    syscall\n";
-                }
-            }
-        }
-    }
-    return output.str();
-}
+#include "tokenizer.h"
+#include "parser.h"
+#include "generator.h"
 
 int main(int argc, char *argv[]) {
 
@@ -51,13 +30,23 @@ int main(int argc, char *argv[]) {
     // now lets get all the tokens
     Tokenizer tokenizer(std::move(contents));
     std::vector<Token> tokens = tokenizer.tokenize();
+
+    Parser parser(std::move(tokens));
+
+    std::optional<NodeExit> tree = parser.parse();
+    if (!tree.has_value()) {
+        std::cerr << "No exit statement found!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    Generator generator(tree.value());
     {
         // this will make an output file with assembly code
         std::fstream file("out.asm", std::ios::out);
-        file << tokens_to_asm(tokens);
+        file << generator.generate();
     }
 
-    // make the output file of assembly (machine code)
+    // execute the assembly code and make an output file from it (machine code)
     system("nasm -felf64 out.asm");
     system("ld -o out out.o");
 
