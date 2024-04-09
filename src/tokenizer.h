@@ -5,7 +5,7 @@
 
 // These are all our token types
 enum class TokenType {
-    exit, int_lit, semi
+    exit, int_lit, semi, open_paren, close_paren, ident, let, eq
 };
 
 struct Token {
@@ -21,13 +21,12 @@ private:
 
     // nodiscard means compiler will give a warning if the return value isn't stored/used as it's a constant method. PS: it was suggested by CLion LOL :)
     // basically if you are not using the return value then it's not doing anything hence [[nodiscard]]
-    [[nodiscard]] inline std::optional<char> peek(int ahead = 1) const {
+    [[nodiscard]] inline std::optional<char> peek(int offset = 0) const {
         // it's a constant method which means it isn't modifying any of its members, so it makes it's only useful for returning value
-
-        if (m_index + ahead > m_src.length()) {
+        if (m_index + offset >= m_src.length()) {
             return {};
         } else {
-            return m_src.at(m_index);
+            return m_src.at(m_index + offset);
         }
     }
 
@@ -61,12 +60,13 @@ public:
                     // push the token to vector and clear the buffer
                     tokens.push_back({.type = TokenType::exit});
                     buff.clear();
-                    continue;
-                } else { // there is syntax error in the code
-                    std::cerr << "Syntax Error in the Code. Fix it and Try again!" << std::endl;
-                    exit(EXIT_FAILURE);
+                } else if (buff == "let") {
+                    tokens.push_back({.type = TokenType::let});
+                    buff.clear();
+                } else { // if it's not a keyword then make it an identifier
+                    tokens.push_back({.type = TokenType::ident, .value = buff});
+                    buff.clear();
                 }
-                continue;
             } else if (std::isdigit(peek().value())) {
                 // if token is starting with a number then it must an integer literal
                 buff.push_back(consume());
@@ -79,9 +79,21 @@ public:
                 tokens.push_back({.type = TokenType::int_lit, .value = buff});
                 buff.clear();
                 continue;
-            } else if (peek().value() == ';') {
-                tokens.push_back({.type = TokenType::semi});
+            } else if (peek().value() == '(') {
                 consume();
+                tokens.push_back({.type = TokenType::open_paren});
+                continue;
+            } else if (peek().value() == ')') {
+                consume();
+                tokens.push_back({.type = TokenType::close_paren});
+                continue;
+            } else if (peek().value() == ';') {
+                consume();
+                tokens.push_back({.type = TokenType::semi});
+                continue;
+            } else if (peek().value() == '=') {
+                consume();
+                tokens.push_back({.type = TokenType::eq});
                 continue;
             } else if (isspace(peek().value())) {
                 consume();

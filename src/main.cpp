@@ -17,7 +17,8 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    std::string contents; // this string will contain all the input file data
+    // reading input from a file
+    std::string contents;
     // we are using this brackets to define scope so that it will automatically close the file when the scope ends
     {
         // read the input file into contents
@@ -25,25 +26,28 @@ int main(int argc, char *argv[]) {
         std::fstream input(argv[1], std::ios::in);
         contents_stream << input.rdbuf();
         contents = contents_stream.str();
-    } // after this bracket the file will be closed
+    } // after this bracket the file will be automatically closed because of scope resolution
 
-    // now lets get all the tokens
+    // now we will generate token for the input file
     Tokenizer tokenizer(std::move(contents));
     std::vector<Token> tokens = tokenizer.tokenize();
 
+    // now lets parse all the tokens
     Parser parser(std::move(tokens));
 
-    std::optional<NodeExit> tree = parser.parse();
-    if (!tree.has_value()) {
-        std::cerr << "No exit statement found!" << std::endl;
+    // make a root node of tree for parser
+    std::optional<NodeProg> prog = parser.parse_prog();
+    if (!prog.has_value()) {
+        std::cerr << "Invalid Code! Please fix the error and try again." << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    Generator generator(tree.value());
+    // generate assembly code based using root node of the parse tree
+    Generator generator(prog.value());
     {
         // this will make an output file with assembly code
         std::fstream file("out.asm", std::ios::out);
-        file << generator.generate();
+        file << generator.gen_prog();
     }
 
     // execute the assembly code and make an output file from it (machine code)

@@ -1,13 +1,36 @@
 #pragma once
 
+#include <variant>
+
 #include "tokenizer.h"
 
-struct NodeExpr {
+struct NodeExprIntLit {
     Token int_lit;
 };
 
-struct NodeExit {
+struct NodeExprIdent {
+    Token ident;
+};
+
+struct NodeExpr {
+    std::variant<NodeExprIntLit, NodeExprIdent> var; // var can be any of the types specified inside the variant<> similar to enum
+};
+
+struct NodeStmtExit {
     NodeExpr expr;
+};
+
+struct NodeStmtLet {
+    Token ident; // identifier
+    NodeExpr expr; // expression
+};
+
+struct NodeStmt {
+    std::variant<NodeStmtExit, NodeStmtLet> var;
+};
+
+struct NodeProg {
+    std::vector<NodeStmt> stmts; // will contain all the statements
 };
 
 class Parser {
@@ -16,14 +39,13 @@ private:
     size_t m_index = 0;
 
     // nodiscard means compiler will give a warning if the return value isn't stored/used as it's a constant method. PS: it was suggested by CLion LOL :)
-    // basically if you are not using the return value then it's not doing anything hence [[nodiscard]]
-    [[nodiscard]] inline std::optional<Token> peek(int ahead = 1) const {
+    // basically if you are not using the return value then it's not doing anything hence [[nodiscard]] (you can't discard the return value)
+    [[nodiscard]] inline std::optional<Token> peek(int offset = 0) const {
         // it's a constant method which means it isn't modifying any of its members, so it makes it's only useful for returning value
-
-        if (m_index + ahead > m_tokens.size()) {
+        if (m_index + offset >= m_tokens.size()) {
             return {};
         } else {
-            return m_tokens.at(m_index);
+            return m_tokens.at(m_index + offset);
         }
     }
 
@@ -37,40 +59,92 @@ public:
 
     }
 
+    // parses the expression
     std::optional<NodeExpr> parse_expr() {
-        if (peek().has_value() && peek().value().type == TokenType::int_lit) {
-            return NodeExpr{.int_lit = consume()};
+        if (peek().has_value() && peek().value().type == TokenType::int_lit) { // if integer
+            return NodeExpr{.var = NodeExprIntLit{.int_lit = consume()}};
+        } else if (peek().has_value() && peek().value().type == TokenType::ident) { // if identifier
+            return NodeExpr{.var = NodeExprIdent{.ident = consume()}};
+        } else { // otherwise
+            return {};
+        }
+    }
+
+    // parse the statement
+    std::optional<NodeStmt> parse_stmt() {
+        if (peek().value().type == TokenType::exit && peek().has_value() &&
+            peek(1).value().type == TokenType::open_paren) {
+            consume(); // consume exit token
+            consume(); // consume open parenthesis
+
+            NodeStmtExit stmt_exit;
+            if (auto node_expr = parse_expr()) {
+                stmt_exit = {.expr = node_expr.value()};
+            } else {
+                std::cerr << "Invalid Expression" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            if (peek().has_value() && peek().value().type == TokenType::close_paren) {
+                consume(); // consume the close parenthesis
+            } else {
+                std::cerr << "Expected a ')' " << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            // after int_lit we need a semicolon
+            if (peek().has_value() && peek().value().type == TokenType::semi) {
+                consume();
+            } else {
+                std::cerr << "Expected a ';' " << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            return NodeStmt{.var = stmt_exit};
+        }
+            // for this type of expression:  let x = 5;
+        else if (peek().has_value() && peek().value().type == TokenType::let && peek(1).has_value() &&
+                 peek(1).value().type == TokenType::ident && peek(2).has_value() &&
+                 peek(2).value().type == TokenType::eq) {
+
+            consume(); // consumes let token
+            auto stmt_let = NodeStmtLet{.ident = consume()}; // consumes variable name
+            consume(); // consumes equal sign
+
+            if (auto expr = parse_expr()) {
+                stmt_let.expr = expr.value();
+            } else {
+                std::cerr << "Invalid Expression" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            // check if there is a semicolon
+            if (peek().has_value() && peek().value().type == TokenType::semi) {
+                consume(); // consume the semicolon
+            } else {
+                std::cerr << "Expected a ;" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            return NodeStmt{.var = stmt_let};
         } else {
             return {};
         }
     }
 
-    std::optional<NodeExit> parse() {
-        std::optional<NodeExit> exit_node;
-
+    // parse whole program
+    std::optional<NodeProg> parse_prog() {
+        NodeProg prog;
         while (peek().has_value()) {
-            // for exit token
-            if (peek().value().type == TokenType::exit) {
-                consume();
-                // if the node_expr doesn't have a value after parsing the expression then we will go with the else block
-                if (auto node_expr = parse_expr()) {
-                    exit_node = NodeExit{.expr = node_expr.value()};
-                } else {
-                    std::cerr << "Invalid Expression" << std::endl;
-                    exit(EXIT_FAILURE);
-                }
-
-                if (peek().has_value() && peek().value().type == TokenType::semi) {
-                    consume();
-                    continue;
-                } else {
-                    std::cerr << "Invalid Expression" << std::endl;
-                    exit(EXIT_FAILURE);
-                }
+            if (auto stmt = parse_stmt()) {
+                prog.stmts.push_back(stmt.value());
+            } else {
+                std::cerr << "Invalid Statement" << std::endl;
+                exit(EXIT_FAILURE);
             }
         }
 
-        m_index = 0;
-        return exit_node;
+        return prog;
     }
+
 };
