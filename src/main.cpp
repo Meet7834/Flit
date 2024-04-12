@@ -4,8 +4,6 @@
 #include <optional>
 #include <vector>
 
-#include "tokenizer.h"
-#include "parser.h"
 #include "generator.h"
 
 int main(int argc, char *argv[]) {
