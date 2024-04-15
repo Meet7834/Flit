@@ -5,7 +5,7 @@
 
 // These are all our token types
 enum class TokenType {
-    exit, int_lit, semi, open_paren, close_paren, ident, let, eq
+    exit, int_lit, semi, open_paren, close_paren, ident, let, eq, plus
 };
 
 struct Token {
@@ -94,6 +94,10 @@ public:
             } else if (peek().value() == '=') {
                 consume();
                 tokens.push_back({.type = TokenType::eq});
+                continue;
+            } else if (peek().value() == '+') {
+                consume();
+                tokens.push_back({.type = TokenType::plus});
                 continue;
             } else if (isspace(peek().value())) {
                 consume();

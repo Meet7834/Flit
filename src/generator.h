@@ -22,7 +22,7 @@ private:
 
     void pop(const std::string &reg) {
         m_output << "    pop " << reg << "\n";
-        m_stack_size++;
+        m_stack_size--;
     }
 
 public:
@@ -31,34 +31,51 @@ public:
 
     }
 
-    void gen_expr(const NodeExpr *expr) {
-        // this visitor will direct the input to whatever statement we need to generate
-        struct ExprVisitor {
+    void gen_term(const NodeTerm *term) {
+        struct TermVisitor {
             Generator *gen;
 
-            void operator()(const NodeExprIntLit *expr_int_lit) {
-                gen->m_output << "    mov rax, " << expr_int_lit->int_lit.value.value() << "\n";
+            void operator()(const NodeTermIntLit *termIntLit) const {
+                gen->m_output << "    mov rax, " << termIntLit->int_lit.value.value() << "\n";
                 gen->push("rax");
             }
 
-            void operator()(const NodeExprIdent *expr_ident) {
-
+            void operator()(const NodeTermIdent *term_ident) const {
                 // if the given identifier doesn't exist
-                if (!gen->m_vars.contains(expr_ident->ident.value.value())) {
-                    std::cerr << "Undeclared Identifier " << expr_ident->ident.value.value() << std::endl;
+                if (!gen->m_vars.contains(term_ident->ident.value.value())) {
+                    std::cerr << "Undeclared Identifier " << term_ident->ident.value.value() << std::endl;
                     exit(EXIT_FAILURE);
                 }
 
-                const auto &var = gen->m_vars.at(expr_ident->ident.value.value());
+                const auto &var = gen->m_vars.at(term_ident->ident.value.value());
                 // we will find the offset and then copy the variable to the top of the stack
                 std::stringstream offset;
                 // we are multiplying by 8 to convert the integer 64 bits to binary
                 offset << "QWORD [rsp + " << (gen->m_stack_size - var.stack_loc - 1) * 8 << "]\n";
                 gen->push(offset.str());
             }
+        };
+
+        TermVisitor visitor({.gen = this});
+        std::visit(visitor, term->var);
+    }
+
+    void gen_expr(const NodeExpr *expr) {
+        // this visitor will direct the input to whatever statement we need to generate
+        struct ExprVisitor {
+            Generator *gen;
+
+            void operator()(const NodeTerm *term) const {
+                gen->gen_term(term);
+            }
 
             void operator()(const NodeBinExpr *bin_expr) const {
-                assert(false); // TODO
+                gen->gen_expr(bin_expr->add->lhs);
+                gen->gen_expr(bin_expr->add->rhs);
+                gen->pop("rax");
+                gen->pop("rbx");
+                gen->m_output << "    add rax, rbx\n";
+                gen->push("rax");
             }
         };
 
@@ -79,7 +96,7 @@ public:
                 gen->m_output << "    syscall\n";
             }
 
-            void operator()(const NodeStmtLet *stmt_let) {
+            void operator()(const NodeStmtLet *stmt_let) const {
                 if (gen->m_vars.contains(stmt_let->ident.value.value())) {
                     std::cerr << "Identifier already used: " << stmt_let->ident.value.value() << std::endl;
                     exit(EXIT_FAILURE);
@@ -87,10 +104,6 @@ public:
 
                 gen->m_vars.insert({stmt_let->ident.value.value(), Var{.stack_loc = gen->m_stack_size}});
                 gen->gen_expr(stmt_let->expr);
-            }
-
-            void operator()(const NodeBinExpr *bin_expr) {
-                assert(false); // TODO
             }
         };
 
