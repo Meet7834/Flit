@@ -41,13 +41,17 @@ struct NodeStmtExit {
     NodeExpr *expr;
 };
 
+struct NodeStmtPrint {
+    NodeExpr *expr;
+};
+
 struct NodeStmtLet {
     Token ident; // identifier
     NodeExpr *expr; // expression
 };
 
 struct NodeStmt {
-    std::variant<NodeStmtExit *, NodeStmtLet *> var;
+    std::variant<NodeStmtExit *, NodeStmtLet *, NodeStmtPrint *> var;
 };
 
 struct NodeProg {
@@ -60,10 +64,7 @@ private:
     size_t m_index = 0;
     ArenaAllocator m_allocator;
 
-    // nodiscard means compiler will give a warning if the return value isn't stored/used as it's a constant method. PS: it was suggested by CLion LOL :)
-    // basically if you are not using the return value then it's not doing anything hence [[nodiscard]] (you can't discard the return value)
     [[nodiscard]] std::optional<Token> peek(int offset = 0) const {
-        // it's a constant method which means it isn't modifying any of its members, so it makes it's only useful for returning value
         if (m_index + offset >= m_tokens.size()) {
             return {};
         } else {
@@ -76,6 +77,7 @@ private:
         return m_tokens.at(m_index++);
     }
 
+    // for better error handling
     Token try_consume(TokenType type, const std::string &err_msg) {
         if (peek().has_value() && peek().value().type == type) {
             return consume();
@@ -155,6 +157,7 @@ public:
 
     // parse the statement
     std::optional<NodeStmt *> parse_stmt() {
+        // for exit token
         if (peek().value().type == TokenType::exit && peek(1).has_value() &&
             peek(1).value().type == TokenType::open_paren) {
             consume(); // consume exit token
@@ -164,18 +167,18 @@ public:
             if (auto node_expr = parse_expr()) {
                 stmt_exit->expr = node_expr.value();
             } else {
-                std::cerr << "Invalid Expression" << std::endl;
+                std::cerr << "Invalid Expression inside exit statement!" << std::endl;
                 exit(EXIT_FAILURE);
             }
 
-            try_consume(TokenType::close_paren, "Expected a ')'");
-            try_consume(TokenType::semi, "Expected a ';'");
+            try_consume(TokenType::close_paren, "Expected a ')' after exit expression!");
+            try_consume(TokenType::semi, "Expected a ';' after exit statement!");
 
             auto node_stmt = m_allocator.alloc<NodeStmt>();
             node_stmt->var = stmt_exit;
             return node_stmt;
         }
-            // for this type of expression:  let x = 5;
+            // for let token
         else if (peek().has_value() && peek().value().type == TokenType::let && peek(1).has_value() &&
                  peek(1).value().type == TokenType::ident && peek(2).has_value() &&
                  peek(2).value().type == TokenType::eq) {
@@ -188,14 +191,33 @@ public:
             if (auto expr = parse_expr()) {
                 stmt_let->expr = expr.value();
             } else {
-                std::cerr << "Invalid Expression" << std::endl;
+                std::cerr << "Invalid Expression inside let statement!" << std::endl;
                 exit(EXIT_FAILURE);
             }
 
-            try_consume(TokenType::semi, "Expected a ';'");
+            try_consume(TokenType::semi, "Expected a ';' after let statement!");
 
             auto node_stmt = m_allocator.alloc<NodeStmt>();
             node_stmt->var = stmt_let;
+            return node_stmt;
+        } else if (peek().has_value() && peek().value().type == TokenType::print && peek(1).has_value() &&
+                   peek(1).value().type == TokenType::open_paren) {
+            consume(); // consume the print token
+            consume(); // consume open parenthesis
+
+            auto stmt_print = m_allocator.alloc<NodeStmtPrint>();
+            if (auto node_expr = parse_expr()) {
+                stmt_print->expr = node_expr.value();
+            } else {
+                std::cerr << "Invalid Expression inside print statement!" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            try_consume(TokenType::close_paren, "Expected a ')' after print expression!");
+            try_consume(TokenType::semi, "Expected a ';' after print statement!");
+
+            auto node_stmt = m_allocator.alloc<NodeStmt>();
+            node_stmt->var = stmt_print;
             return node_stmt;
         } else {
             return {};
@@ -209,7 +231,7 @@ public:
             if (auto stmt = parse_stmt()) {
                 prog.stmts.push_back(stmt.value());
             } else {
-                std::cerr << "Invalid Statement" << std::endl;
+                std::cerr << "Invalid Statement!" << std::endl;
                 exit(EXIT_FAILURE);
             }
         }

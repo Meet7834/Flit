@@ -5,7 +5,7 @@
 
 // These are all our token types
 enum class TokenType {
-    exit, int_lit, semi, open_paren, close_paren, ident, let, eq, plus
+    exit, int_lit, semi, open_paren, close_paren, ident, let, eq, plus, print
 };
 
 struct Token {
@@ -62,6 +62,9 @@ public:
                     buff.clear();
                 } else if (buff == "let") {
                     tokens.push_back({.type = TokenType::let});
+                    buff.clear();
+                } else if (buff == "print") {
+                    tokens.push_back({.type = TokenType::print});
                     buff.clear();
                 } else { // if it's not a keyword then make it an identifier
                     tokens.push_back({.type = TokenType::ident, .value = buff});

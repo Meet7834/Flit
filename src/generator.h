@@ -105,12 +105,16 @@ public:
                 gen->m_vars.insert({stmt_let->ident.value.value(), Var{.stack_loc = gen->m_stack_size}});
                 gen->gen_expr(stmt_let->expr);
             }
+
+            void operator()(const NodeStmtPrint *stmt_print) const {
+                std::cerr << "Sorry Print functionality isn't implemented yet!" << std::endl;
+                exit(EXIT_FAILURE);
+            }
         };
 
         // construct visitor instance, it will call the suited method for the variable type
         StmtVisitor visitor{.gen = this};
         std::visit(visitor, stmt->var);
-
     }
 
     std::string gen_prog() {
