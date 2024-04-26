@@ -1,3 +1,8 @@
-let x = 4;
-let y = x + 10;
-exit(y + 5);
+let x = 5;
+let y = x + 5;
+let z = x + y + x;
+print(z + z + y + x);
+print(5 + 5 );
+print(7834);
+exit(0);
+print(95);

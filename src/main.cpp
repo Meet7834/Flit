@@ -51,7 +51,6 @@ int main(int argc, char *argv[]) {
     // execute the assembly code and make an output file from it (machine code)
     system("nasm -felf64 out.asm");
     system("ld -o out out.o");
-    system("./out; echo $?");
-
+    system("./out");
     return EXIT_SUCCESS;
 }
