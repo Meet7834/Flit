@@ -1,8 +1,13 @@
 let x = 5;
 let y = x + 5;
+
+print( y + x);
+
 let z = x + y + x;
-print(z + z + y + x);
-print(5 + 5 );
+
+print(5 + 5);
 print(7834);
+
 exit(0);
+
 print(95);

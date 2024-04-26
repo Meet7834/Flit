@@ -36,3 +36,4 @@ cmake-build-debug-wsl
 cmake-build-relwithdebinfo-wsl
 assemblyPractice
 .idea
+build

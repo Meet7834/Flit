@@ -194,7 +194,6 @@ public:
     }
 
     std::string gen_prog() {
-
         // ads bss section to the top of the assembly code
         genHeader();
 
@@ -206,7 +205,7 @@ public:
 
         m_output << "    ; exiting the program\n";
 
-        // to exit the program (if the user hasn't included exit statement)
+        // to exit the program (in case the user hasn't included exit statement)
         m_output << "    mov rax, 60\n"; // syscall 60 for sys_exit
         m_output << "    mov rdi, 0\n"; // return 0
         m_output << "    syscall\n";

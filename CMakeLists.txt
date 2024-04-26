@@ -4,4 +4,4 @@ project(flit)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(Flit src/main.cpp)
+add_executable(flit src/main.cpp)
