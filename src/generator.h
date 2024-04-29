@@ -167,6 +167,7 @@ public:
                 gen->gen_expr(div->lhs);
                 gen->pop("rax");
                 gen->pop("rbx");
+                gen->m_output << "    mov rdx, 0\n"; // clearing the rdx register before division
                 gen->m_output << "    div rbx\n";
                 gen->push("rax");
             }
@@ -225,10 +226,8 @@ public:
                 gen->m_output << "    ; print statement\n";
 
                 gen->gen_expr(stmt_print->expr);
-                gen->m_output << "    pop rax\n";
+                gen->pop("rax");
                 gen->m_output << "    call _printRAX\n";
-//                gen->m_output << "    push rax\n\n";
-
             }
         };
 

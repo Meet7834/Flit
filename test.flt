@@ -1,2 +1,7 @@
-print(10/2);
-print(10/2);
+let x = 10 / 2+1;
+let y = x + 5;
+let z = x * y;
+
+print(x);
+print(y);
+print(z);
