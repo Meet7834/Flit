@@ -8,6 +8,7 @@
 * **Code Generation:** Translates the AST into x86-64 assembly code.
 * **Memory Allocator:** Allocates memory linearly in previous reserved chunk
 * **Project Workflow:** Tokenize => Parse => Generate Assembly Code 
+* **Operator Precedence:** PEMDAS precedence for arithmetic operations implemented.
 
 ## Usage Instructions
 **Prerequisites**
@@ -43,19 +44,14 @@
 ```Flit
 // A simple example
 
-let x = 5; 
+let x = 10 / 2+1;
 let y = x + 5;
+let z = x * y;
 
-print(y + x); // prints 15
+print(x);
+print(y);
+print(z);
 
-let z = x + y + x;
-
-print(z); // prints 20
-print(7834); // prints 7834
-
-exit(0); // exits the program
-
-print(95); // will not execute
 ```
 
 ## Contributing:
@@ -63,6 +59,5 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 
 ## Roadmap:
 
-* Implement multiplication, division, and other arithmetic operators.
 * Add support for 'if' statements and loops.
 * Introduce more data types.
