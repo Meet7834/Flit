@@ -5,8 +5,21 @@
 
 // These are all our token types
 enum class TokenType {
-    exit, int_lit, semi, open_paren, close_paren, ident, let, eq, plus, print
+    exit, int_lit, semi, open_paren, close_paren, ident, let, eq, print, plus, star, sub, div
 };
+
+std::optional<int> bin_prec(TokenType type) {
+    switch (type) {
+        case TokenType::plus:
+        case TokenType::sub:
+            return 0;
+        case TokenType::star:
+        case TokenType::div:
+            return 1;
+        default:
+            return {};
+    }
+}
 
 struct Token {
     TokenType type;
@@ -81,30 +94,32 @@ public:
                 // push the int_lit to tokens and give it value of buffer
                 tokens.push_back({.type = TokenType::int_lit, .value = buff});
                 buff.clear();
-                continue;
             } else if (peek().value() == '(') {
                 consume();
                 tokens.push_back({.type = TokenType::open_paren});
-                continue;
             } else if (peek().value() == ')') {
                 consume();
                 tokens.push_back({.type = TokenType::close_paren});
-                continue;
             } else if (peek().value() == ';') {
                 consume();
                 tokens.push_back({.type = TokenType::semi});
-                continue;
             } else if (peek().value() == '=') {
                 consume();
                 tokens.push_back({.type = TokenType::eq});
-                continue;
             } else if (peek().value() == '+') {
                 consume();
                 tokens.push_back({.type = TokenType::plus});
-                continue;
+            } else if (peek().value() == '-') {
+                consume();
+                tokens.push_back({.type = TokenType::sub});
+            } else if (peek().value() == '*') {
+                consume();
+                tokens.push_back({.type = TokenType::star});
+            } else if (peek().value() == '/') {
+                consume();
+                tokens.push_back({.type = TokenType::div});
             } else if (isspace(peek().value())) {
                 consume();
-                continue;
             } else {
                 // some syntax error has happened
                 std::cerr << "Syntax Error in the Code. Fix it and Try again!" << std::endl;

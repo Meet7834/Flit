@@ -31,7 +31,7 @@ private:
         m_output << "    digitSpacePos resb 8\n";
     }
 
-    void genHeader(){
+    void genHeader() {
         genSectionBSS();
         m_output << "\nsection .text\n";
         m_output << "    global _start\n";
@@ -48,11 +48,11 @@ private:
 
     void genPrintRAXLoop() {
         m_output << "\n_printRAXLoop:\n";
-        m_output << "    mov rdx, 0 \n";
+        m_output << "    mov rdx, 0 ; clear rdx before division\n";
         m_output << "    mov rbx, 10\n";
         m_output << "    div rbx\n";
         m_output << "    push rax\n";
-        m_output << "    add rdx, 48\n\n";
+        m_output << "    add rdx, 48 ; convert the remainder to ASCII\n\n";
 
         m_output << "    mov rcx, [digitSpacePos]\n";
         m_output << "    mov [rcx], dl\n";
@@ -121,10 +121,58 @@ public:
                 offset << "QWORD [rsp + " << (gen->m_stack_size - var.stack_loc - 1) * 8 << "]\n";
                 gen->push(offset.str());
             }
+
+            void operator()(const NodeTermParen *term_paren) const {
+                gen->gen_expr(term_paren->expr);
+            }
         };
 
         TermVisitor visitor({.gen = this});
         std::visit(visitor, term->var);
+    }
+
+    void gen_bin_expr(const NodeBinExpr *bin_expr) {
+        struct BinExprVisitor {
+            Generator *gen;
+
+            void operator()(const NodeBinExprAdd *add) const {
+                gen->gen_expr(add->rhs);
+                gen->gen_expr(add->lhs);
+                gen->pop("rax");
+                gen->pop("rbx");
+                gen->m_output << "    add rax, rbx\n";
+                gen->push("rax");
+            }
+
+            void operator()(const NodeBinExprSub *sub) const {
+                gen->gen_expr(sub->rhs);
+                gen->gen_expr(sub->lhs);
+                gen->pop("rax");
+                gen->pop("rbx");
+                gen->m_output << "    sub rax, rbx\n";
+                gen->push("rax");
+            }
+
+            void operator()(const NodeBinExprMulti *multi) const {
+                gen->gen_expr(multi->rhs);
+                gen->gen_expr(multi->lhs);
+                gen->pop("rax");
+                gen->pop("rbx");
+                gen->m_output << "    mul rbx\n";
+                gen->push("rax");
+            }
+
+            void operator()(const NodeBinExprDiv *div) const {
+                gen->gen_expr(div->rhs);
+                gen->gen_expr(div->lhs);
+                gen->pop("rax");
+                gen->pop("rbx");
+                gen->m_output << "    div rbx\n";
+                gen->push("rax");
+            }
+        };
+        BinExprVisitor visitor{.gen = this};
+        std::visit(visitor, bin_expr->var);
     }
 
     void gen_expr(const NodeExpr *expr) {
@@ -138,13 +186,7 @@ public:
 
             void operator()(const NodeBinExpr *bin_expr) const {
                 gen->m_output << "    ; binary expression\n";
-
-                gen->gen_expr(bin_expr->add->lhs);
-                gen->gen_expr(bin_expr->add->rhs);
-                gen->pop("rax");
-                gen->pop("rbx");
-                gen->m_output << "    add rax, rbx\n";
-                gen->push("rax");
+                gen->gen_bin_expr(bin_expr);
             }
         };
 
@@ -184,7 +226,9 @@ public:
 
                 gen->gen_expr(stmt_print->expr);
                 gen->m_output << "    pop rax\n";
-                gen->m_output << "    call _printRAX\n\n";
+                gen->m_output << "    call _printRAX\n";
+//                gen->m_output << "    push rax\n\n";
+
             }
         };
 
