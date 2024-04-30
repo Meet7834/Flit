@@ -5,15 +5,30 @@
 
 // These are all our token types
 enum class TokenType {
-    exit, int_lit, semi, open_paren, close_paren, ident, let, eq, print, plus, star, sub, div
+    exit,
+    int_lit,
+    semi,
+    open_paren,
+    close_paren,
+    ident,
+    let,
+    eq,
+    print,
+    plus,
+    multi,
+    minus,
+    div,
+    open_curly,
+    close_curly,
+    if_
 };
 
 std::optional<int> bin_prec(TokenType type) {
     switch (type) {
         case TokenType::plus:
-        case TokenType::sub:
+        case TokenType::minus:
             return 0;
-        case TokenType::star:
+        case TokenType::multi:
         case TokenType::div:
             return 1;
         default:
@@ -79,6 +94,9 @@ public:
                 } else if (buff == "print") {
                     tokens.push_back({.type = TokenType::print});
                     buff.clear();
+                } else if (buff == "if") {
+                    tokens.push_back({.type = TokenType::if_});
+                    buff.clear();
                 } else { // if it's not a keyword then make it an identifier
                     tokens.push_back({.type = TokenType::ident, .value = buff});
                     buff.clear();
@@ -111,13 +129,19 @@ public:
                 tokens.push_back({.type = TokenType::plus});
             } else if (peek().value() == '-') {
                 consume();
-                tokens.push_back({.type = TokenType::sub});
+                tokens.push_back({.type = TokenType::minus});
             } else if (peek().value() == '*') {
                 consume();
-                tokens.push_back({.type = TokenType::star});
+                tokens.push_back({.type = TokenType::multi});
             } else if (peek().value() == '/') {
                 consume();
                 tokens.push_back({.type = TokenType::div});
+            } else if (peek().value() == '{') {
+                consume();
+                tokens.push_back({.type = TokenType::open_curly});
+            } else if (peek().value() == '}') {
+                consume();
+                tokens.push_back({.type = TokenType::close_curly});
             } else if (isspace(peek().value())) {
                 consume();
             } else {

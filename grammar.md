@@ -1,9 +1,21 @@
-[Prog] ==> [Stmt]*
+[Prog] ==> {
+
+*     [Stmt]*
+
+}
 
 [Stmt] ==> {
 
 *     exit([Expr]); 
 *     let ident = [Expr];
+*     if ([Expr]) [Scope]
+*     print([Expr]);
+
+}
+
+[Scope] ==> {
+
+*     [Stmt]*
 
 }
 
@@ -28,4 +40,5 @@
 *     int_lit
 *     ident
 *     ([Expr])
+
 }

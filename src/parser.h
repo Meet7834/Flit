@@ -1,7 +1,6 @@
 #pragma once
 
 #include <variant>
-
 #include "tokenizer.h"
 #include "arena.h"
 
@@ -24,7 +23,7 @@ struct NodeBinExprAdd {
     NodeExpr *rhs;
 };
 
-struct NodeBinExprSub {
+struct NodeBinExprMinus {
     NodeExpr *lhs;
     NodeExpr *rhs;
 };
@@ -40,7 +39,7 @@ struct NodeBinExprDiv {
 };
 
 struct NodeBinExpr {
-    std::variant<NodeBinExprAdd *, NodeBinExprSub *, NodeBinExprMulti *, NodeBinExprDiv *> var; // var can be any of the types specified inside the variant<> similar to enum
+    std::variant<NodeBinExprAdd *, NodeBinExprMinus *, NodeBinExprMulti *, NodeBinExprDiv *> var; // var can be any of the types specified inside the variant<> similar to enum
 };
 
 struct NodeTerm {
@@ -64,8 +63,19 @@ struct NodeStmtLet {
     NodeExpr *expr; // expression
 };
 
+struct NodeStmt;
+
+struct NodeScope {
+    std::vector<NodeStmt *> stmts;
+};
+
+struct NodeStmtIf {
+    NodeExpr *expr;
+    NodeScope *scope;
+};
+
 struct NodeStmt {
-    std::variant<NodeStmtExit *, NodeStmtLet *, NodeStmtPrint *> var;
+    std::variant<NodeStmtExit *, NodeStmtLet *, NodeStmtPrint *, NodeScope *, NodeStmtIf *> var;
 };
 
 struct NodeProg {
@@ -191,14 +201,14 @@ public:
                 add->lhs = expr_lhs2;
                 add->rhs = expr_rhs.value();
                 expr->var = add;
-            } else if (op.type == TokenType::sub) {
-                auto sub = m_allocator.alloc<NodeBinExprSub>();
+            } else if (op.type == TokenType::minus) {
+                auto sub = m_allocator.alloc<NodeBinExprMinus>();
                 expr_lhs2->var = expr_lhs->var;
 
                 sub->lhs = expr_lhs2;
                 sub->rhs = expr_rhs.value();
                 expr->var = sub;
-            } else if (op.type == TokenType::star) {
+            } else if (op.type == TokenType::multi) {
                 auto multi = m_allocator.alloc<NodeBinExprMulti>();
                 expr_lhs2->var = expr_lhs->var;
 
@@ -218,6 +228,19 @@ public:
             expr_lhs->var = expr;
         }
         return expr_lhs;
+    }
+
+    // parse the scope
+    std::optional<NodeScope *> parse_scope() {
+        if (!try_consume(TokenType::open_curly).has_value()) {
+            return {};
+        }
+        auto scope = m_allocator.alloc<NodeScope>();
+        while (auto stmt = parse_stmt()) {
+            scope->stmts.push_back(stmt.value());
+        }
+        try_consume(TokenType::close_curly, "Expected a '}'");
+        return scope;
     }
 
     // parse the statement
@@ -284,6 +307,37 @@ public:
             auto node_stmt = m_allocator.alloc<NodeStmt>();
             node_stmt->var = stmt_print;
             return node_stmt;
+        } else if (peek().has_value() && peek().value().type == TokenType::open_curly) {
+            if (auto scope = parse_scope()) {
+                auto stmt = m_allocator.alloc<NodeStmt>();
+                stmt->var = scope.value();
+                return stmt;
+            } else {
+                std::cerr << "Invalid Scope" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+        } else if (auto if_ = try_consume(TokenType::if_)) {
+
+            try_consume(TokenType::open_paren, "Expected a '('");
+            auto stmt_if = m_allocator.alloc<NodeStmtIf>();
+            if (auto expr = parse_expr()) {
+                stmt_if->expr = expr.value();
+            } else {
+                std::cerr << "Invalid Expression" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            try_consume(TokenType::close_paren, "Expected a ')'");
+
+            if (auto scope = parse_scope()) {
+                stmt_if->scope = scope.value();
+            } else {
+                std::cerr << "Invalid Scope" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            auto stmt = m_allocator.alloc<NodeStmt>();
+            stmt->var = stmt_if;
+            return stmt;
         } else {
             return {};
         }
