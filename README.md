@@ -42,16 +42,30 @@
 ## Example Flit Program
 
 ```Flit
-// A simple example
+let x = (10 - 2 * 3) / 2 + 10; // Supports PEMDAS Ordering
+let y = x + 5; // Supports operation on variable
 
-let x = 10 / 2+1;
-let y = x + 5;
-let z = x * y;
+// has scope for variables
+{
+    let z = 10; // this will expire after scope ends
+    
+    // supports if statements
+    if (0) {
+        print(5); // won't run
+    }
 
-print(x);
-print(y);
-print(z);
+    if (1){
+        print(999); // will run
+    }
 
+    print(z); // prints 10
+}
+
+let z = 1000; // as the previous scope expired we can again inititalize z
+
+print(x); // prints 12
+print(y); // prints 17
+print(z); // prints 1000
 ```
 
 ## Contributing:
@@ -59,5 +73,6 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 
 ## Roadmap:
 
-* Add support for 'if' statements and loops.
+* Add support for 'elif' statements and loops.
+* Add Functions
 * Introduce more data types.
