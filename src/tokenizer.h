@@ -112,6 +112,25 @@ public:
                 // push the int_lit to tokens and give it value of buffer
                 tokens.push_back({.type = TokenType::int_lit, .value = buff});
                 buff.clear();
+            } else if (peek().value() == '/' && peek(1).has_value() && peek(1).value() == '/') {
+                // consume both '/'
+                consume();
+                consume();
+                while (peek().has_value() && peek().value() != '\n') {
+                    consume();
+                }
+            } else if (peek().value() == '/' && peek(1).has_value() && peek(1).value() == '*') {
+                // consume '/' then '*'
+                consume();
+                consume();
+                while (peek().has_value()) {
+                    if (peek().value() == '*' && peek(1).has_value() && peek(1).value() == '/') {
+                        break;
+                    }
+                    consume();
+                }
+                if (peek().has_value()) consume(); // consume '*'
+                if (peek().has_value()) consume(); // consume '/'
             } else if (peek().value() == '(') {
                 consume();
                 tokens.push_back({.type = TokenType::open_paren});
