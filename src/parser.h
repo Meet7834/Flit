@@ -91,9 +91,8 @@ private:
     [[nodiscard]] std::optional<Token> peek(int offset = 0) const {
         if (m_index + offset >= m_tokens.size()) {
             return {};
-        } else {
-            return m_tokens.at(m_index + offset);
         }
+        return m_tokens.at(m_index + offset);
     }
 
     // returns the current element and then increases index
@@ -105,22 +104,20 @@ private:
     Token try_consume(TokenType type, const std::string &err_msg) {
         if (peek().has_value() && peek().value().type == type) {
             return consume();
-        } else {
-            std::cerr << err_msg << std::endl;
-            exit(EXIT_FAILURE);
         }
+        std::cerr << err_msg << std::endl;
+        exit(EXIT_FAILURE);
     }
 
     std::optional<Token> try_consume(TokenType type) {
         if (peek().has_value() && peek().value().type == type) {
             return consume();
-        } else {
-            return {};
         }
+        return {};
     }
 
 public:
-    inline explicit Parser(std::vector<Token> tokens) :
+    explicit Parser(std::vector<Token> tokens) :
             m_tokens(std::move(tokens)),
             m_allocator(1024 * 1024 * 4) // 4mb
     {
@@ -134,14 +131,16 @@ public:
             auto term = m_allocator.alloc<NodeTerm>();
             term->var = term_int_lit;
             return term;
-        } else if (auto ident = try_consume(TokenType::ident)) { // if identifier
+        }
+        if (auto ident = try_consume(TokenType::ident)) { // if identifier
             auto term_ident = m_allocator.alloc<NodeTermIdent>();
             term_ident->ident = ident.value();
 
             auto term = m_allocator.alloc<NodeTerm>();
             term->var = term_ident;
             return term;
-        } else if (auto open_paren = try_consume(TokenType::open_paren)) {
+        }
+        if (auto open_paren = try_consume(TokenType::open_paren)) {
             auto expr = parse_expr();
             if (!expr.has_value()) {
                 std::cerr << "Expected an Expression" << std::endl;
@@ -155,9 +154,8 @@ public:
             term->var = term_paren;
 
             return term;
-        } else {
-            return {};
         }
+        return {};
     }
 
     // parses the expression
@@ -266,10 +264,9 @@ public:
             node_stmt->var = stmt_exit;
             return node_stmt;
         }
-            // for let token
-        else if (peek().has_value() && peek().value().type == TokenType::let && peek(1).has_value() &&
-                 peek(1).value().type == TokenType::ident && peek(2).has_value() &&
-                 peek(2).value().type == TokenType::eq) {
+        if (peek().has_value() && peek().value().type == TokenType::let && peek(1).has_value() &&
+            peek(1).value().type == TokenType::ident && peek(2).has_value() &&
+            peek(2).value().type == TokenType::eq) {
 
             consume(); // consumes let token
             auto stmt_let = m_allocator.alloc<NodeStmtLet>();
@@ -284,12 +281,12 @@ public:
             }
 
             try_consume(TokenType::semi, "Expected a ';' after let statement!");
-
             auto node_stmt = m_allocator.alloc<NodeStmt>();
             node_stmt->var = stmt_let;
             return node_stmt;
-        } else if (peek().has_value() && peek().value().type == TokenType::print && peek(1).has_value() &&
-                   peek(1).value().type == TokenType::open_paren) {
+        }
+        if (peek().has_value() && peek().value().type == TokenType::print && peek(1).has_value() &&
+            peek(1).value().type == TokenType::open_paren) {
             consume(); // consume the print token
             consume(); // consume open parenthesis
 
@@ -307,16 +304,17 @@ public:
             auto node_stmt = m_allocator.alloc<NodeStmt>();
             node_stmt->var = stmt_print;
             return node_stmt;
-        } else if (peek().has_value() && peek().value().type == TokenType::open_curly) {
+        }
+        if (peek().has_value() && peek().value().type == TokenType::open_curly) {
             if (auto scope = parse_scope()) {
                 auto stmt = m_allocator.alloc<NodeStmt>();
                 stmt->var = scope.value();
                 return stmt;
-            } else {
-                std::cerr << "Invalid Scope" << std::endl;
-                exit(EXIT_FAILURE);
             }
-        } else if (auto if_ = try_consume(TokenType::if_)) {
+            std::cerr << "Invalid Scope" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        if (auto if_ = try_consume(TokenType::if_)) {
 
             try_consume(TokenType::open_paren, "Expected a '('");
             auto stmt_if = m_allocator.alloc<NodeStmtIf>();
@@ -338,12 +336,11 @@ public:
             auto stmt = m_allocator.alloc<NodeStmt>();
             stmt->var = stmt_if;
             return stmt;
-        } else {
-            return {};
         }
+        return {};
     }
 
-// parse whole program
+    // parse whole program
     std::optional<NodeProg> parse_prog() {
         NodeProg prog;
         while (peek().has_value()) {
@@ -354,7 +351,6 @@ public:
                 exit(EXIT_FAILURE);
             }
         }
-
         return prog;
     }
 

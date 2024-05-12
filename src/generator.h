@@ -55,7 +55,7 @@ private:
 
 public:
     // this constructor moves the given argument to private member root
-    inline explicit Generator(NodeProg prog) : m_prog(std::move(prog)) {
+    explicit Generator(NodeProg prog) : m_prog(std::move(prog)) {
 
     }
 
@@ -84,7 +84,7 @@ public:
                 std::stringstream offset;
                 // we will find the offset and then copy the variable to the top of the stack
                 // we are multiplying by 8 to convert the integer 64 bits to binary
-                offset << "QWORD [rsp + " << (gen.m_stack_size - (*it).stack_loc - 1) * 8 << "]\n";
+                offset << "QWORD [rsp + " << (gen.m_stack_size - it->stack_loc - 1) * 8 << "]\n";
                 gen.push(offset.str());
             }
 

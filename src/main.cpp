@@ -41,8 +41,8 @@ int main(int argc, char *argv[]) {
     }
 
     // generate assembly code based using root node of the parse tree
-    Generator generator(prog.value());
     {
+        Generator generator(prog.value());
         // this will make an output file with assembly code
         std::fstream file("out.asm", std::ios::out);
         file << generator.gen_prog();

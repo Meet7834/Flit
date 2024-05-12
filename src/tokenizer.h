@@ -49,7 +49,7 @@ private:
 
     // nodiscard means compiler will give a warning if the return value isn't stored/used as it's a constant method. PS: it was suggested by CLion LOL :)
     // basically if you are not using the return value then it's not doing anything hence [[nodiscard]]
-    [[nodiscard]] inline std::optional<char> peek(int offset = 0) const {
+    [[nodiscard]] std::optional<char> peek(int offset = 0) const {
         // it's a constant method which means it isn't modifying any of its members, so it makes it's only useful for returning value
         if (m_index + offset >= m_src.length()) {
             return {};
@@ -59,18 +59,18 @@ private:
     }
 
     // returns the current element and then increases index
-    inline char consume() {
+    char consume() {
         return m_src.at(m_index++);
     }
 
 public:
     // explicit because it shouldn't accidentally convert string into a tokenizer
-    inline explicit Tokenizer(std::string src) : m_src(std::move(src)) {
+    explicit Tokenizer(std::string src) : m_src(std::move(src)) {
         // this constructor just moves the value of string in our private member src
     }
 
     // tokenizer: this function will read the string and make a vector with all the tokens
-    inline std::vector<Token> tokenize() {
+    std::vector<Token> tokenize() {
         std::vector<Token> tokens;
         std::string buff; // temporary string buffer to store the current token
 
