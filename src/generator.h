@@ -170,6 +170,34 @@ public:
         end_scope();
     }
 
+    void gen_if_pred(const NodeIfPred *if_pred, const std::string &end_label) {
+        struct PredVisitor {
+            Generator &gen;
+            const std::string &end_label;
+
+            void operator()(const NodeIfPredElif *elif) const {
+                gen.gen_expr(elif->expr);
+                gen.pop("rax");
+                std::string label = gen.create_label();
+                gen.m_output << "    test rax, rax\n";
+                gen.m_output << "    jz " << label << "\n";
+                gen.gen_scope(elif->scope);
+                gen.m_output << "    jmp " << end_label << "\n";
+                if (elif->pred.has_value()) {
+                    gen.m_output << label << ":\n";
+                    gen.gen_if_pred(elif->pred.value(), end_label);
+                }
+            }
+
+            void operator()(const NodeIfPredElse *else_) {
+                gen.gen_scope(else_->scope);
+            }
+        };
+
+        PredVisitor visitor{.gen = *this, .end_label = end_label};
+        std::visit(visitor, if_pred->var);
+    }
+
     void gen_stmt(const NodeStmt *stmt) {
         // this visitor will direct the input to whatever statement we need to generate
         struct StmtVisitor {
@@ -216,10 +244,18 @@ public:
                 gen.gen_expr(stmt_if->expr);
                 gen.pop("rax");
                 std::string label = gen.create_label();
-                gen.m_output << "    test rax, rax\n";
+                gen.m_output << "    test rax, rax ; if statement\n";
                 gen.m_output << "    jz " << label << "\n";
                 gen.gen_scope(stmt_if->scope);
-                gen.m_output << "\n" << label << ":\n";
+                if (stmt_if->pred.has_value()){
+                    const std::string end_label = gen.create_label();
+                    gen.m_output << "    jmp " << end_label << "\n";
+                    gen.m_output << label << ":\n";
+                    gen.gen_if_pred(stmt_if->pred.value(), end_label);
+                    gen.m_output << end_label << ":\n";
+                } else {
+                    gen.m_output << label << ":\n";
+                }
             }
         };
 

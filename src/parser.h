@@ -69,9 +69,26 @@ struct NodeScope {
     std::vector<NodeStmt *> stmts;
 };
 
+struct NodeIfPred;
+
+struct NodeIfPredElif {
+    NodeExpr *expr;
+    NodeScope *scope;
+    std::optional<NodeIfPred *> pred;
+};
+
+struct NodeIfPredElse {
+    NodeScope *scope;
+};
+
+struct NodeIfPred {
+    std::variant<NodeIfPredElif *, NodeIfPredElse *> var;
+};
+
 struct NodeStmtIf {
     NodeExpr *expr;
     NodeScope *scope;
+    std::optional<NodeIfPred *> pred;
 };
 
 struct NodeStmt {
@@ -158,7 +175,6 @@ public:
         return {};
     }
 
-    // parses the expression
     std::optional<NodeExpr *> parse_expr(int min_prec = 0) {
 
         std::optional<NodeTerm *> term_lhs = parse_term();
@@ -228,7 +244,6 @@ public:
         return expr_lhs;
     }
 
-    // parse the scope
     std::optional<NodeScope *> parse_scope() {
         if (!try_consume(TokenType::open_curly).has_value()) {
             return {};
@@ -241,7 +256,48 @@ public:
         return scope;
     }
 
-    // parse the statement
+    std::optional<NodeIfPred *> parse_if_pred() {
+        if (try_consume(TokenType::elif)) {
+            auto elif_pred = m_allocator.alloc<NodeIfPredElif>();
+
+            try_consume(TokenType::open_paren, "Expected a '('");
+            if (auto expr = parse_expr()) {
+                elif_pred->expr = expr.value();
+            } else {
+                std::cerr << "Invalid Expression" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            try_consume(TokenType::close_paren, "Expected a ')'");
+
+            if (auto scope = parse_scope()) {
+                elif_pred->scope = scope.value();
+            } else {
+                std::cerr << "Invalid Scope" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            elif_pred->pred = parse_if_pred();
+            auto if_pred = m_allocator.alloc<NodeIfPred>();
+            if_pred->var = elif_pred;
+            return if_pred;
+        }
+        if (try_consume(TokenType::else_)) {
+            auto else_pred = m_allocator.alloc<NodeIfPredElse>();
+
+            if (auto scope = parse_scope()) {
+                else_pred->scope = scope.value();
+            } else {
+                std::cerr << "Invalid Scope" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+
+            auto if_pred = m_allocator.alloc<NodeIfPred>();
+            if_pred->var = else_pred;
+            return if_pred;
+        }
+        return {};
+    }
+
     std::optional<NodeStmt *> parse_stmt() {
         // for exit token
         if (peek().value().type == TokenType::exit && peek(1).has_value() &&
@@ -314,7 +370,7 @@ public:
             std::cerr << "Invalid Scope" << std::endl;
             exit(EXIT_FAILURE);
         }
-        if (auto if_ = try_consume(TokenType::if_)) {
+        if (try_consume(TokenType::if_)) {
 
             try_consume(TokenType::open_paren, "Expected a '('");
             auto stmt_if = m_allocator.alloc<NodeStmtIf>();
@@ -333,6 +389,7 @@ public:
                 exit(EXIT_FAILURE);
             }
 
+            stmt_if->pred = parse_if_pred();
             auto stmt = m_allocator.alloc<NodeStmt>();
             stmt->var = stmt_if;
             return stmt;
@@ -340,7 +397,6 @@ public:
         return {};
     }
 
-    // parse whole program
     std::optional<NodeProg> parse_prog() {
         NodeProg prog;
         while (peek().has_value()) {

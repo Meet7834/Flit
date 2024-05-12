@@ -40,39 +40,14 @@
     ./build/flit ./my_program.flt
     ```
 ## Example Flit Program
-
-```Flit
-let x = (10 - 2 * 3) / 2 + 10; // Supports PEMDAS Ordering
-let y = x + 5; // Supports operation on variable
-
-// has scope for variables
-{
-    let z = 10; // this will expire after scope ends
-    
-    // supports if statements
-    if (0) {
-        print(5); // won't run
-    }
-
-    if (1){
-        print(999); // will run
-    }
-
-    print(z); // prints 10
-}
-
-let z = 1000; // as the previous scope expired we can again inititalize z
-
-print(x); // prints 12
-print(y); // prints 17
-print(z); // prints 1000
-```
+*  For Sample code see grammar.md or see myProgram.flt
 
 ## Contributing:
 Contributions are welcome! Feel free to open issues or submit pull requests.
 
 ## Roadmap:
 
-* Add support for 'elif' statements and loops.
-* Add Functions
+* Introduce elif and else statements.
+* Introduce loops.
+* Introduce Functions
 * Introduce more data types.

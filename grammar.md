@@ -8,7 +8,7 @@
 
 *     exit([Expr]); 
 *     let ident = [Expr];
-*     if ([Expr]) [Scope]
+*     if ([Expr]) [Scope] [IfPred]
 *     print([Expr]);
 
 }
@@ -16,6 +16,14 @@
 [Scope] ==> {
 
 *     [Stmt]*
+
+}
+
+[IfPred] ==> {
+
+*     elif([expr])[Scope][IfPred]
+*     else[Scope]
+*     ε
 
 }
 

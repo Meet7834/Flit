@@ -20,7 +20,9 @@ enum class TokenType {
     div,
     open_curly,
     close_curly,
-    if_
+    if_,
+    elif,
+    else_
 };
 
 std::optional<int> bin_prec(TokenType type) {
@@ -96,6 +98,12 @@ public:
                     buff.clear();
                 } else if (buff == "if") {
                     tokens.push_back({.type = TokenType::if_});
+                    buff.clear();
+                } else if (buff == "elif") {
+                    tokens.push_back({.type = TokenType::elif});
+                    buff.clear();
+                } else if (buff == "else") {
+                    tokens.push_back({.type = TokenType::else_});
                     buff.clear();
                 } else { // if it's not a keyword then make it an identifier
                     tokens.push_back({.type = TokenType::ident, .value = buff});

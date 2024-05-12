@@ -4,21 +4,23 @@ let y = x + 5; // Supports operation on variable
 // has scope for variables
 {
     let z = 10; // this will expire after scope ends
+    // supports if-elif-else statements
 
-    // supports if statements
-    if (0) {
-        print(5); // won't run
+    if (z - 10) {
+        print(1); // won't run
+    } elif (z-5) {
+        print(2); // will run
+    } else {
+        print(3); // won't run
     }
 
-    if (1){
-        print(999); // will run
+    if (999) {
+        print(999);
     }
-
     print(z); // prints 10
 }
 
-let z = 1000; // as the previous scope expired we can again inititalize z
-
+let z = 1000; // as the previous scope expired we can again initialize z
 /*
     This is multiline comment. Next 3 print statements will print:
 
@@ -28,6 +30,7 @@ let z = 1000; // as the previous scope expired we can again inititalize z
 
     respectively.
 */
+
 print(x);
 print(y);
 print(z);
