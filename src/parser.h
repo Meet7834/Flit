@@ -91,8 +91,13 @@ struct NodeStmtIf {
     std::optional<NodeIfPred *> pred;
 };
 
+struct NodeStmtAssign {
+    Token ident;
+    NodeExpr *expr;
+};
+
 struct NodeStmt {
-    std::variant<NodeStmtExit *, NodeStmtLet *, NodeStmtPrint *, NodeScope *, NodeStmtIf *> var;
+    std::variant<NodeStmtExit *, NodeStmtLet *, NodeStmtPrint *, NodeScope *, NodeStmtIf *, NodeStmtAssign *> var;
 };
 
 struct NodeProg {
@@ -339,6 +344,25 @@ public:
             try_consume(TokenType::semi, "Expected a ';' after let statement!");
             auto node_stmt = m_allocator.alloc<NodeStmt>();
             node_stmt->var = stmt_let;
+            return node_stmt;
+        }
+        if (peek().has_value() && peek().value().type == TokenType::ident && peek(1).has_value() &&
+            peek(1).value().type == TokenType::eq) {
+
+            auto assign_var = m_allocator.alloc<NodeStmtAssign>();
+            assign_var->ident = consume();
+            consume(); // consume equals token
+
+            if (auto expr = parse_expr()) {
+                assign_var->expr = expr.value();
+            } else {
+                std::cerr << "Invalid Variable Assignment!" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            try_consume(TokenType::semi, "Expected a ';' after variable assignment!");
+
+            auto node_stmt = m_allocator.alloc<NodeStmt>();
+            node_stmt->var = assign_var;
             return node_stmt;
         }
         if (peek().has_value() && peek().value().type == TokenType::print && peek(1).has_value() &&

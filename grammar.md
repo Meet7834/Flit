@@ -8,8 +8,10 @@
 
 *     exit([Expr]); 
 *     let ident = [Expr];
-*     if ([Expr]) [Scope] [IfPred]
+*     ident = [Expr];
 *     print([Expr]);
+*     [Scope]
+*     if ([Expr]) [Scope] [IfPred]
 
 }
 

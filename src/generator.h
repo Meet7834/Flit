@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include "ranges"
 #include "parser.h"
 #include "utils.h"
 
@@ -213,8 +214,7 @@ public:
             }
 
             void operator()(const NodeStmtLet *stmt_let) const {
-
-                auto it = std::find_if(gen.m_vars.cbegin(), gen.m_vars.cend(), [&](const Var &var) {
+                auto it = std::ranges::find_if(gen.m_vars, [&](const Var &var) {
                     return var.name == stmt_let->ident.value.value();
                 });
                 if (it != gen.m_vars.cend()) {
@@ -247,7 +247,7 @@ public:
                 gen.m_output << "    test rax, rax ; if statement\n";
                 gen.m_output << "    jz " << label << "\n";
                 gen.gen_scope(stmt_if->scope);
-                if (stmt_if->pred.has_value()){
+                if (stmt_if->pred.has_value()) {
                     const std::string end_label = gen.create_label();
                     gen.m_output << "    jmp " << end_label << "\n";
                     gen.m_output << label << ":\n";
@@ -256,6 +256,21 @@ public:
                 } else {
                     gen.m_output << label << ":\n";
                 }
+            }
+
+            void operator()(const NodeStmtAssign *stmt_assign) const {
+                auto it = std::ranges::find_if(gen.m_vars, [&](const Var &var) {
+                    return var.name == stmt_assign->ident.value.value();
+                });
+                if (it == gen.m_vars.cend()) {
+                    std::cerr << "Undeclared Identifier: " << stmt_assign->ident.value.value() << std::endl;
+                    exit(EXIT_FAILURE);
+                }
+
+                gen.m_output << "    ; reassigning identifier\n";
+                gen.gen_expr(stmt_assign->expr);
+                gen.pop("rax");
+                gen.m_output << "    mov [rsp + " << (gen.m_stack_size - it->stack_loc - 1) * 8 << "], rax\n";
             }
         };
 
