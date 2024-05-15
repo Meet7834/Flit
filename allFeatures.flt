@@ -33,6 +33,6 @@ let z = 1000; // as the previous scope expired we can again initialize z
     respectively.
 */
 
-print(x);
+print(x)
 print(y);
 print(z);

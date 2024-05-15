@@ -179,6 +179,7 @@ public:
                     if (peek().value() == '*' && peek(1).has_value() && peek(1).value() == '/') {
                         break;
                     }
+                    if (peek().value() == '\n') line_count++;
                     consume();
                 }
                 if (peek().has_value()) consume(); // consume '*'
