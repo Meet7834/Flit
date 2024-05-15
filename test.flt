@@ -1,0 +1,11 @@
+let x = 5;
+
+let k = 50 + x;
+
+if (1){
+    print(5);
+} elif(5){
+    print(100);
+} else {
+    print();
+}

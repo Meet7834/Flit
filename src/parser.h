@@ -123,12 +123,12 @@ private:
     }
 
     // for better error handling
-    Token try_consume(TokenType type, const std::string &err_msg) {
+    Token try_consume_err(TokenType type) {
         if (peek().has_value() && peek().value().type == type) {
             return consume();
         }
-        std::cerr << err_msg << std::endl;
-        exit(EXIT_FAILURE);
+        error_expected(to_string(type));
+        return {};
     }
 
     std::optional<Token> try_consume(TokenType type) {
@@ -143,6 +143,11 @@ public:
             m_tokens(std::move(tokens)),
             m_allocator(1024 * 1024 * 4) // 4mb
     {
+    }
+
+    void error_expected(const std::string &msg) {
+        std::cerr << "[Parsing Error] Expected `" << msg << "` on line " << peek(-1).value().line << std::endl;
+        exit(EXIT_FAILURE);
     }
 
     std::optional<NodeTerm *> parse_term() {
@@ -165,10 +170,9 @@ public:
         if (auto open_paren = try_consume(TokenType::open_paren)) {
             auto expr = parse_expr();
             if (!expr.has_value()) {
-                std::cerr << "Expected an Expression" << std::endl;
-                exit(EXIT_FAILURE);
+                error_expected("expression");
             }
-            try_consume(TokenType::close_paren, "Expected a ')'");
+            try_consume_err(TokenType::close_paren);
 
             auto term_paren = m_allocator.alloc<NodeTermParen>();
             term_paren->expr = expr.value();
@@ -206,8 +210,7 @@ public:
             int next_min_prec = prec.value() + 1;
             auto expr_rhs = parse_expr(next_min_prec);
             if (!expr_rhs.has_value()) {
-                std::cerr << "Unable to parse expression" << std::endl;
-                exit(EXIT_FAILURE);
+                error_expected("expression");
             }
 
             auto expr = m_allocator.alloc<NodeBinExpr>();
@@ -257,7 +260,7 @@ public:
         while (auto stmt = parse_stmt()) {
             scope->stmts.push_back(stmt.value());
         }
-        try_consume(TokenType::close_curly, "Expected a '}'");
+        try_consume_err(TokenType::close_curly);
         return scope;
     }
 
@@ -265,20 +268,18 @@ public:
         if (try_consume(TokenType::elif)) {
             auto elif_pred = m_allocator.alloc<NodeIfPredElif>();
 
-            try_consume(TokenType::open_paren, "Expected a '('");
+            try_consume_err(TokenType::open_paren);
             if (auto expr = parse_expr()) {
                 elif_pred->expr = expr.value();
             } else {
-                std::cerr << "Invalid Expression" << std::endl;
-                exit(EXIT_FAILURE);
+                error_expected("expression");
             }
-            try_consume(TokenType::close_paren, "Expected a ')'");
+            try_consume_err(TokenType::close_paren);
 
             if (auto scope = parse_scope()) {
                 elif_pred->scope = scope.value();
             } else {
-                std::cerr << "Invalid Scope" << std::endl;
-                exit(EXIT_FAILURE);
+                error_expected("scope");
             }
 
             elif_pred->pred = parse_if_pred();
@@ -292,8 +293,7 @@ public:
             if (auto scope = parse_scope()) {
                 else_pred->scope = scope.value();
             } else {
-                std::cerr << "Invalid Scope" << std::endl;
-                exit(EXIT_FAILURE);
+                error_expected("scope");
             }
 
             auto if_pred = m_allocator.alloc<NodeIfPred>();
@@ -305,7 +305,7 @@ public:
 
     std::optional<NodeStmt *> parse_stmt() {
         // for exit token
-        if (peek().value().type == TokenType::exit && peek(1).has_value() &&
+        if (peek().has_value() && peek().value().type == TokenType::exit && peek(1).has_value() &&
             peek(1).value().type == TokenType::open_paren) {
             consume(); // consume exit token
             consume(); // consume open parenthesis
@@ -314,12 +314,11 @@ public:
             if (auto node_expr = parse_expr()) {
                 stmt_exit->expr = node_expr.value();
             } else {
-                std::cerr << "Invalid Expression inside exit statement!" << std::endl;
-                exit(EXIT_FAILURE);
+                error_expected("expression");
             }
 
-            try_consume(TokenType::close_paren, "Expected a ')' after exit expression!");
-            try_consume(TokenType::semi, "Expected a ';' after exit statement!");
+            try_consume_err(TokenType::close_paren);
+            try_consume_err(TokenType::semi);
 
             auto node_stmt = m_allocator.alloc<NodeStmt>();
             node_stmt->var = stmt_exit;
@@ -337,11 +336,10 @@ public:
             if (auto expr = parse_expr()) {
                 stmt_let->expr = expr.value();
             } else {
-                std::cerr << "Invalid Expression inside let statement!" << std::endl;
-                exit(EXIT_FAILURE);
+                error_expected("expression");
             }
 
-            try_consume(TokenType::semi, "Expected a ';' after let statement!");
+            try_consume_err(TokenType::semi);
             auto node_stmt = m_allocator.alloc<NodeStmt>();
             node_stmt->var = stmt_let;
             return node_stmt;
@@ -356,10 +354,9 @@ public:
             if (auto expr = parse_expr()) {
                 assign_var->expr = expr.value();
             } else {
-                std::cerr << "Invalid Variable Assignment!" << std::endl;
-                exit(EXIT_FAILURE);
+                error_expected("Variable Assignment");
             }
-            try_consume(TokenType::semi, "Expected a ';' after variable assignment!");
+            try_consume_err(TokenType::semi);
 
             auto node_stmt = m_allocator.alloc<NodeStmt>();
             node_stmt->var = assign_var;
@@ -374,12 +371,11 @@ public:
             if (auto node_expr = parse_expr()) {
                 stmt_print->expr = node_expr.value();
             } else {
-                std::cerr << "Invalid Expression inside print statement!" << std::endl;
-                exit(EXIT_FAILURE);
+                error_expected("print expression");
             }
 
-            try_consume(TokenType::close_paren, "Expected a ')' after print expression!");
-            try_consume(TokenType::semi, "Expected a ';' after print statement!");
+            try_consume_err(TokenType::close_paren);
+            try_consume_err(TokenType::semi);
 
             auto node_stmt = m_allocator.alloc<NodeStmt>();
             node_stmt->var = stmt_print;
@@ -391,26 +387,23 @@ public:
                 stmt->var = scope.value();
                 return stmt;
             }
-            std::cerr << "Invalid Scope" << std::endl;
-            exit(EXIT_FAILURE);
+            error_expected("scope");
         }
         if (try_consume(TokenType::if_)) {
 
-            try_consume(TokenType::open_paren, "Expected a '('");
+            try_consume_err(TokenType::open_paren);
             auto stmt_if = m_allocator.alloc<NodeStmtIf>();
             if (auto expr = parse_expr()) {
                 stmt_if->expr = expr.value();
             } else {
-                std::cerr << "Invalid Expression" << std::endl;
-                exit(EXIT_FAILURE);
+                error_expected("expression");
             }
-            try_consume(TokenType::close_paren, "Expected a ')'");
+            try_consume_err(TokenType::close_paren);
 
             if (auto scope = parse_scope()) {
                 stmt_if->scope = scope.value();
             } else {
-                std::cerr << "Invalid Scope" << std::endl;
-                exit(EXIT_FAILURE);
+                error_expected("scope");
             }
 
             stmt_if->pred = parse_if_pred();
@@ -427,8 +420,7 @@ public:
             if (auto stmt = parse_stmt()) {
                 prog.stmts.push_back(stmt.value());
             } else {
-                std::cerr << "Invalid Statement!" << std::endl;
-                exit(EXIT_FAILURE);
+                error_expected("statement");
             }
         }
         return prog;
