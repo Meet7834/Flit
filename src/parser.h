@@ -91,13 +91,18 @@ struct NodeStmtIf {
     std::optional<NodeIfPred *> pred;
 };
 
+struct NodeStmtWhile {
+    NodeExpr *expr;
+    NodeScope *scope;
+};
+
 struct NodeStmtAssign {
     Token ident;
     NodeExpr *expr;
 };
 
 struct NodeStmt {
-    std::variant<NodeStmtExit *, NodeStmtLet *, NodeStmtPrint *, NodeScope *, NodeStmtIf *, NodeStmtAssign *> var;
+    std::variant<NodeStmtExit *, NodeStmtLet *, NodeStmtPrint *, NodeScope *, NodeStmtIf *, NodeStmtAssign *, NodeStmtWhile *> var;
 };
 
 struct NodeProg {
@@ -409,6 +414,26 @@ public:
             stmt_if->pred = parse_if_pred();
             auto stmt = m_allocator.alloc<NodeStmt>();
             stmt->var = stmt_if;
+            return stmt;
+        }
+        if (try_consume(TokenType::while_)) {
+            try_consume_err(TokenType::open_paren);
+            auto stmt_while = m_allocator.alloc<NodeStmtWhile>();
+            if (auto expr = parse_expr()) {
+                stmt_while->expr = expr.value();
+            } else {
+                error_expected("expression");
+            }
+            try_consume_err(TokenType::close_paren);
+
+            if (auto scope = parse_scope()) {
+                stmt_while->scope = scope.value();
+            } else {
+                error_expected("scope");
+            }
+
+            auto stmt = m_allocator.alloc<NodeStmt>();
+            stmt->var = stmt_while;
             return stmt;
         }
         return {};

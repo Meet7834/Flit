@@ -22,7 +22,8 @@ enum class TokenType {
     close_curly,
     if_,
     elif,
-    else_
+    else_,
+    while_
 };
 
 std::string to_string(const TokenType type) {
@@ -63,6 +64,8 @@ std::string to_string(const TokenType type) {
             return "`else`";
         case TokenType::print:
             return "`print`";
+        case TokenType::while_:
+            return "`while`";
     }
     assert(false);
 }
@@ -149,6 +152,9 @@ public:
                 } else if (buff == "else") {
                     tokens.push_back({TokenType::else_, line_count});
                     buff.clear();
+                } else if (buff == "while") {
+                    tokens.push_back({TokenType::while_, line_count});
+                    buff.clear();
                 } else { // if it's not a keyword then make it an identifier
                     tokens.push_back({TokenType::ident, line_count, buff});
                     buff.clear();
@@ -221,7 +227,7 @@ public:
                 consume();
             } else {
                 // some syntax error has happened
-                std::cerr << "Syntax Error in the Code. Fix it and Try again!" << std::endl;
+                std::cerr << "Unexpected Token on line " << line_count << std::endl;
                 exit(EXIT_FAILURE);
             }
         }

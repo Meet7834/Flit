@@ -12,6 +12,7 @@
 *     print([Expr]);
 *     [Scope]
 *     if ([Expr]) [Scope] [IfPred]
+*     while([Expr])[Scope]
 
 }
 

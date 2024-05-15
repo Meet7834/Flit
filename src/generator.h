@@ -29,8 +29,9 @@ private:
         m_stack_size--;
     }
 
-    void begin_scope() {
+    void begin_scope(const std::string scopeLabel) {
         m_output << "    ; scope begin\n";
+        m_output << scopeLabel << ":\n";
         m_scopes.push_back(m_vars.size());
     }
 
@@ -48,9 +49,21 @@ private:
         m_scopes.pop_back();
     }
 
-    std::string create_label() {
+    std::string create_if_label() {
         std::stringstream ss;
-        ss << "label" << m_label_count++;
+        ss << "ifPredLabel" << m_label_count++;
+        return ss.str();
+    }
+
+    std::string create_while_label(){
+        std::stringstream ss;
+        ss << "whileLabel" << m_label_count++;
+        return ss.str();
+    }
+
+    std::string create_scope_label(){
+        std::stringstream ss;
+        ss << "scopeLabel" << m_label_count++;
         return ss.str();
     }
 
@@ -163,8 +176,8 @@ public:
         std::visit(visitor, expr->var);
     }
 
-    void gen_scope(const NodeScope *scope) {
-        begin_scope();
+    void gen_scope(const NodeScope *scope, const std::string scopeLabel) {
+        begin_scope(scopeLabel);
         for (const NodeStmt *stmt: scope->stmts) {
             gen_stmt(stmt);
         }
@@ -179,10 +192,10 @@ public:
             void operator()(const NodeIfPredElif *elif) const {
                 gen.gen_expr(elif->expr);
                 gen.pop("rax");
-                std::string label = gen.create_label();
+                std::string label = gen.create_if_label();
                 gen.m_output << "    test rax, rax\n";
                 gen.m_output << "    jz " << label << "\n";
-                gen.gen_scope(elif->scope);
+                gen.gen_scope(elif->scope, gen.create_scope_label());
                 gen.m_output << "    jmp " << end_label << "\n";
                 if (elif->pred.has_value()) {
                     gen.m_output << label << ":\n";
@@ -191,7 +204,7 @@ public:
             }
 
             void operator()(const NodeIfPredElse *else_) {
-                gen.gen_scope(else_->scope);
+                gen.gen_scope(else_->scope, gen.create_scope_label());
             }
         };
 
@@ -237,18 +250,18 @@ public:
             }
 
             void operator()(const NodeScope *scope) const {
-                gen.gen_scope(scope);
+                gen.gen_scope(scope, gen.create_scope_label());
             }
 
             void operator()(const NodeStmtIf *stmt_if) const {
                 gen.gen_expr(stmt_if->expr);
                 gen.pop("rax");
-                std::string label = gen.create_label();
-                gen.m_output << "    test rax, rax ; if statement\n";
+                std::string label = gen.create_if_label();
+                gen.m_output << "    test rax, rax ; if\n";
                 gen.m_output << "    jz " << label << "\n";
-                gen.gen_scope(stmt_if->scope);
+                gen.gen_scope(stmt_if->scope, gen.create_scope_label());
                 if (stmt_if->pred.has_value()) {
-                    const std::string end_label = gen.create_label();
+                    const std::string end_label = gen.create_if_label();
                     gen.m_output << "    jmp " << end_label << "\n";
                     gen.m_output << label << ":\n";
                     gen.gen_if_pred(stmt_if->pred.value(), end_label);
@@ -271,6 +284,18 @@ public:
                 gen.gen_expr(stmt_assign->expr);
                 gen.pop("rax");
                 gen.m_output << "    mov [rsp + " << (gen.m_stack_size - it->stack_loc - 1) * 8 << "], rax\n";
+            }
+
+            void operator()(const NodeStmtWhile *stmtWhile) const {
+                std::string whileLabel = gen.create_while_label();
+                gen.m_output << "    jmp " << whileLabel << "\n";
+                std::string scopeLabel = gen.create_scope_label();
+                gen.gen_scope(stmtWhile->scope, scopeLabel);
+                gen.m_output << whileLabel << ": ;while\n";
+                gen.gen_expr(stmtWhile->expr);
+                gen.pop("rax");
+                gen.m_output << "    cmp rax, 0\n";
+                gen.m_output << "    jne " << scopeLabel << "\n";
             }
         };
 

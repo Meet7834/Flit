@@ -1,5 +1,8 @@
 let x = (10 - 2 * 3) / 2 + 10; // PEMDAS Ordering
+print(x);
+
 let y = x + 5;
+print(y);
 
 {
     let z = 10; // this will expire after scope ends
@@ -22,17 +25,18 @@ let y = x + 5;
 }
 
 let z = 1000; // as the previous scope expired we can again initialize z
+print(z);
 
 /*
-    This is multiline comment. Next 3 print statements will print:
-
-    12
-    17
-    1000
-
-    respectively.
+    This is multiline comment. This
+    is
+    also
+    supported.
 */
 
-print(x)
-print(y);
-print(z);
+// while loops are supported
+let i = 5;
+while (i){
+    print(i);
+    i = i - 1;
+}

@@ -48,6 +48,5 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 ## Roadmap:
 * Add tests
 * Add Comparison Operators (==, <, >, etc...)
-* Introduce loops.
 * Introduce Functions
 * Introduce more data types.
