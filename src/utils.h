@@ -1,7 +1,6 @@
 #pragma once
 
 namespace gen {
-
     void genSectionBSS(std::stringstream &m_output) {
         m_output << "\nsection .bss\n";
         m_output << "    digitSpace resb 100\n";

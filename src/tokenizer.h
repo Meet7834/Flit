@@ -2,103 +2,14 @@
 
 #include <string>
 #include <vector>
-
-// These are all our token types
-enum class TokenType {
-    exit,
-    int_lit,
-    semi,
-    open_paren,
-    close_paren,
-    ident,
-    let,
-    eq,
-    print,
-    plus,
-    multi,
-    minus,
-    div,
-    open_curly,
-    close_curly,
-    if_,
-    elif,
-    else_,
-    while_
-};
-
-std::string to_string(const TokenType type) {
-    switch (type) {
-        case TokenType::exit:
-            return "`exit`";
-        case TokenType::int_lit:
-            return "int literal";
-        case TokenType::semi:
-            return "`;`";
-        case TokenType::open_paren:
-            return "`(`";
-        case TokenType::close_paren:
-            return "`)`";
-        case TokenType::ident:
-            return "identifier";
-        case TokenType::let:
-            return "`let`";
-        case TokenType::eq:
-            return "`=`";
-        case TokenType::plus:
-            return "`+`";
-        case TokenType::multi:
-            return "`*`";
-        case TokenType::minus:
-            return "`-`";
-        case TokenType::div:
-            return "`/`";
-        case TokenType::open_curly:
-            return "`{`";
-        case TokenType::close_curly:
-            return "`}`";
-        case TokenType::if_:
-            return "`if`";
-        case TokenType::elif:
-            return "`elif`";
-        case TokenType::else_:
-            return "`else`";
-        case TokenType::print:
-            return "`print`";
-        case TokenType::while_:
-            return "`while`";
-    }
-    assert(false);
-}
-
-std::optional<int> bin_prec(TokenType type) {
-    switch (type) {
-        case TokenType::plus:
-        case TokenType::minus:
-            return 0;
-        case TokenType::multi:
-        case TokenType::div:
-            return 1;
-        default:
-            return {};
-    }
-}
-
-struct Token {
-    TokenType type;
-    int line;
-    std::optional<std::string> value{}; // this is optional
-};
+#include "structures/tokens.h"
 
 class Tokenizer {
-
 private:
     const std::string m_src;
-    size_t m_index = 0; // size_t is basically and unsigned 32-bit integer
+    size_t m_index = 0;
 
-    // nodiscard means compiler will give a warning if the return value isn't stored/used as it's a constant method. PS: it was suggested by CLion LOL :)
-    // basically if you are not using the return value then it's not doing anything hence [[nodiscard]]
     [[nodiscard]] std::optional<char> peek(int offset = 0) const {
-        // it's a constant method which means it isn't modifying any of its members, so it makes it's only useful for returning value
         if (m_index + offset >= m_src.length()) {
             return {};
         } else {
@@ -114,13 +25,12 @@ private:
 public:
     // explicit because it shouldn't accidentally convert string into a tokenizer
     explicit Tokenizer(std::string src) : m_src(std::move(src)) {
-        // this constructor just moves the value of string in our private member src
     }
 
     // tokenizer: this function will read the string and make a vector with all the tokens
     std::vector<Token> tokenize() {
         std::vector<Token> tokens;
-        std::string buff; // temporary string buffer to store the current token
+        std::string buff;
         int line_count = 1;
 
         while (peek().has_value()) {
@@ -160,7 +70,7 @@ public:
                     buff.clear();
                 }
             } else if (std::isdigit(peek().value())) {
-                // if token is starting with a number then it must an integer literal
+                // if token is starting with a number then it must be an integer literal
                 buff.push_back(consume());
 
                 while (peek().has_value() && std::isdigit(peek().value())) {
@@ -226,13 +136,13 @@ public:
             } else if (isspace(peek().value())) {
                 consume();
             } else {
-                // some syntax error has happened
+                // some syntax error happened
                 std::cerr << "Unexpected Token on line " << line_count << std::endl;
                 exit(EXIT_FAILURE);
             }
         }
 
-        m_index = 0; // in-case we need to use this again
+        m_index = 0; // resetting index
         return tokens;
     }
 };

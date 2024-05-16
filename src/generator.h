@@ -49,21 +49,9 @@ private:
         m_scopes.pop_back();
     }
 
-    std::string create_if_label() {
+    std::string create_label(const std::string labelName) {
         std::stringstream ss;
-        ss << "ifPredLabel" << m_label_count++;
-        return ss.str();
-    }
-
-    std::string create_while_label(){
-        std::stringstream ss;
-        ss << "whileLabel" << m_label_count++;
-        return ss.str();
-    }
-
-    std::string create_scope_label(){
-        std::stringstream ss;
-        ss << "scopeLabel" << m_label_count++;
+        ss << labelName << m_label_count++;
         return ss.str();
     }
 
@@ -192,10 +180,10 @@ public:
             void operator()(const NodeIfPredElif *elif) const {
                 gen.gen_expr(elif->expr);
                 gen.pop("rax");
-                std::string label = gen.create_if_label();
+                std::string label = gen.create_label("elifPredLabel");
                 gen.m_output << "    test rax, rax\n";
                 gen.m_output << "    jz " << label << "\n";
-                gen.gen_scope(elif->scope, gen.create_scope_label());
+                gen.gen_scope(elif->scope, gen.create_label("scopeElif"));
                 gen.m_output << "    jmp " << end_label << "\n";
                 if (elif->pred.has_value()) {
                     gen.m_output << label << ":\n";
@@ -204,7 +192,7 @@ public:
             }
 
             void operator()(const NodeIfPredElse *else_) {
-                gen.gen_scope(else_->scope, gen.create_scope_label());
+                gen.gen_scope(else_->scope, gen.create_label("scopeElse"));
             }
         };
 
@@ -250,18 +238,18 @@ public:
             }
 
             void operator()(const NodeScope *scope) const {
-                gen.gen_scope(scope, gen.create_scope_label());
+                gen.gen_scope(scope, gen.create_label("scopeStart"));
             }
 
             void operator()(const NodeStmtIf *stmt_if) const {
                 gen.gen_expr(stmt_if->expr);
                 gen.pop("rax");
-                std::string label = gen.create_if_label();
+                std::string label = gen.create_label("ifStartLabel");
                 gen.m_output << "    test rax, rax ; if\n";
                 gen.m_output << "    jz " << label << "\n";
-                gen.gen_scope(stmt_if->scope, gen.create_scope_label());
+                gen.gen_scope(stmt_if->scope, gen.create_label("scopeLabel"));
                 if (stmt_if->pred.has_value()) {
-                    const std::string end_label = gen.create_if_label();
+                    const std::string end_label = gen.create_label("ifEndLabel");
                     gen.m_output << "    jmp " << end_label << "\n";
                     gen.m_output << label << ":\n";
                     gen.gen_if_pred(stmt_if->pred.value(), end_label);
@@ -287,11 +275,11 @@ public:
             }
 
             void operator()(const NodeStmtWhile *stmtWhile) const {
-                std::string whileLabel = gen.create_while_label();
+                std::string whileLabel = gen.create_label("whileExpr");
                 gen.m_output << "    jmp " << whileLabel << "\n";
-                std::string scopeLabel = gen.create_scope_label();
+                std::string scopeLabel = gen.create_label("whileScope");
                 gen.gen_scope(stmtWhile->scope, scopeLabel);
-                gen.m_output << whileLabel << ": ;while\n";
+                gen.m_output << whileLabel << ": \n";
                 gen.gen_expr(stmtWhile->expr);
                 gen.pop("rax");
                 gen.m_output << "    cmp rax, 0\n";

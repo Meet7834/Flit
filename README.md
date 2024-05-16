@@ -40,7 +40,7 @@
     ./build/flit ./my_program.flt
     ```
 ## Example Flit Program
-*  For Sample code see grammar.md or see myProgram.flt
+*  For Sample code see grammar.md or see allFeatures.flt or test.flt
 
 ## Contributing:
 Contributions are welcome! Feel free to open issues or submit pull requests.
